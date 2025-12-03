@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Asana Backup Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="app-header">
+      <div class="app-title">
+        <h1>Asana Backup Dashboard</h1>
+        <p>Run backups check status and download results</p>
+      </div>
+      <div class="app-status">
+        <span id="api-status-dot" class="status-dot status-dot-offline"></span>
+        <span id="api-status-text">Checking API status</span>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <section class="card">
+        <h2>API settings</h2>
+        <form id="settings-form">
+          <div class="field-row">
+            <label for="base-url">Backend base URL</label>
+            <input
+              type="url"
+              id="base-url"
+              name="base-url"
+              placeholder="https://your-backend.example.com"
+              required
+            >
+            <p class="field-help">
+              This should be the URL in front of your Lambda or API Gateway
+            </p>
+          </div>
+
+          <div class="field-row">
+            <label for="auth-token">Auth token optional</label>
+            <input
+              type="password"
+              id="auth-token"
+              name="auth-token"
+              placeholder="If your API expects a bearer token"
+            >
+          </div>
+
+          <button type="submit" class="btn primary">Save settings</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Run backup</h2>
+        <form id="backup-form">
+          <div class="field-row">
+            <label for="project-id">Asana project ID</label>
+            <input
+              type="text"
+              id="project-id"
+              name="project-id"
+              placeholder="1234567890123456"
+              required
+            >
+          </div>
+
+          <div class="field-row">
+            <label for="notes">Notes optional</label>
+            <input
+              type="text"
+              id="notes"
+              name="notes"
+              placeholder="Reason for this backup"
+            >
+          </div>
+
+          <button type="submit" class="btn primary">Start backup</button>
+          <span id="backup-spinner" class="spinner hidden"></span>
+        </form>
+      </section>
+
+      <section class="card">
+        <div class="card-header-row">
+          <h2>Backups</h2>
+          <button id="refresh-backups" class="btn ghost">Refresh</button>
+        </div>
+
+        <div id="backups-empty" class="empty-state">
+          <p>No backups found yet</p>
+        </div>
+
+        <table id="backups-table" class="backups-table hidden">
+          <thead>
+            <tr>
+              <th>Started at</th>
+              <th>Project ID</th>
+              <th>Status</th>
+              <th>Notes</th>
+              <th>Download</th>
+            </tr>
+          </thead>
+          <tbody id="backups-tbody">
+          </tbody>
+        </table>
+      </section>
+    </main>
+
+    <div id="toast" class="toast hidden"></div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
