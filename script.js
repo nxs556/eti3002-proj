@@ -29,7 +29,7 @@ function setOutputs(obj) {
   raw.textContent = JSON.stringify(obj);
 }
 
-// Open OAuth in new tab
+// OAuth in new tab
 function startOAuth() {
   const clientKey = getClientKey();
   const url =
@@ -42,7 +42,7 @@ function startOAuth() {
   setStatus("Opened Asana OAuth window", false);
 }
 
-// Call backup endpoint
+// Normal JSON request
 async function sendRequest() {
   try {
     setStatus("Sending request", false);
@@ -92,6 +92,52 @@ async function sendRequest() {
   }
 }
 
+// CSV Download Backup
+async function downloadBackupCSV() {
+  try {
+    setStatus("Generating CSV", false);
+
+    const apiEndpoint =
+      document.getElementById("apiEndpoint").value.trim() ||
+      API_BASE + BACKUP_PATH;
+
+    const body = {
+      action: "backup",
+      client_key: getClientKey(),
+      workspace_id: document.getElementById("workspaceId").value.trim() || null,
+      export: "csv"
+    };
+
+    const res = await fetch(apiEndpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      setStatus("CSV error " + res.status, true);
+      return;
+    }
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+
+    a.href = url;
+    a.download = "asana_backup.csv";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    setStatus("CSV downloaded", false);
+  } catch (err) {
+    setStatus("CSV download failed " + err.toString(), true);
+  }
+}
+
 function clearAll() {
   setOutputs(null);
   setStatus("", false);
@@ -102,9 +148,10 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("oauthBtn").onclick = startOAuth;
   document.getElementById("sendBtn").onclick = sendRequest;
   document.getElementById("clearBtn").onclick = clearAll;
+
   document.getElementById("oauthBackupBtn").onclick = async () => {
     startOAuth();
-    // user finishes OAuth in new tab then comes back here
-    // they can click Send request after that
   };
+
+  document.getElementById("downloadBtn").onclick = downloadBackupCSV;
 });
