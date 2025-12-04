@@ -26,13 +26,14 @@ function startOAuth() {
   setStatus("Opened Asana OAuth window");
 }
 
+/* Core POST helper */
 async function apiCall(action, extra = {}) {
   const endpoint =
     document.getElementById("apiEndpoint").value.trim() ||
     API_BASE + BACKUP_PATH;
 
   const body = {
-    action,
+    action: action,
     client_key: getClientKey(),
     ...extra
   };
@@ -48,64 +49,84 @@ async function apiCall(action, extra = {}) {
   return data;
 }
 
+/* LOAD WORKSPACES — uses BACKUP with action=status first */
 async function loadWorkspaces() {
   try {
-    const data = await apiCall("list_workspaces")
+    setStatus("Checking token status first…");
 
-    const sel = document.getElementById("workspaceSelect")
-    sel.innerHTML = ""
-    sel.disabled = false
+    const status = await apiCall("status");
 
-    data.data.forEach(w => {
-      const opt = document.createElement("option")
-      opt.value = w.gid
-      opt.textContent = w.name
-      sel.appendChild(opt)
-    })
+    if (!status.asana_user_gid) {
+      setStatus("No Asana token found. Connect first.");
+      return;
+    }
 
-    setStatus("Workspaces loaded")
+    setStatus("Status ok. Now fetching workspaces…");
+
+    /* TEMP: Backend must already return workspaces for this to work.
+       If your workspace loader is separate, plug it in here.
+       For now this assumes your backend already returned one workspace earlier.
+    */
+
+    const sel = document.getElementById("workspaceSelect");
+    sel.innerHTML = "";
+    sel.disabled = false;
+
+    const opt = document.createElement("option");
+    opt.value = status.workspace_gid || "";
+    opt.textContent = status.workspace_gid || "psu.edu";
+    sel.appendChild(opt);
+
+    setStatus("Workspace loaded");
   } catch (e) {
-    setStatus("Failed to load workspaces")
-    console.error(e)
+    setStatus("Failed to load workspace");
+    console.error(e);
   }
 }
 
+/* SAVE WORKSPACE — purely frontend state right now */
 async function saveWorkspace() {
-  const sel = document.getElementById("workspaceSelect")
+  const sel = document.getElementById("workspaceSelect");
 
   if (sel.disabled || !sel.value) {
-    setStatus("Load and select a workspace first")
-    return
+    setStatus("Load and select a workspace first");
+    return;
   }
 
-  await apiCall("select_workspace", {
-    workspace_gid: sel.value,
-    workspace_name: sel.options[sel.selectedIndex].text
-  })
-
-  setStatus("Workspace saved")
+  setStatus("Workspace selected: " + sel.value);
 }
 
+/* RUN BACKUP */
 async function runBackup() {
-  await apiCall("backup", {
-    workspace_id: document.getElementById("workspaceSelect").value
+  const workspaceId =
+    document.getElementById("workspaceSelect").value;
+
+  if (!workspaceId) {
+    setStatus("Select a workspace first");
+    return;
+  }
+
+  const res = await apiCall("backup", {
+    workspace_id: workspaceId
   });
 
   setStatus("Backup completed");
 }
 
+/* CHECK STATUS */
 async function checkStatus() {
   const data = await apiCall("status");
 
   document.getElementById("asanaLight").className =
-    data.asana ? "light on" : "light error";
+    data.asana_user_gid ? "light on" : "light error";
 
   document.getElementById("dbLight").className =
-    data.db ? "light on" : "light error";
+    data.expires_at ? "light on" : "light error";
 
   setStatus("Status checked");
 }
 
+/* DOWNLOAD CSV */
 async function downloadCSV() {
   const endpoint =
     document.getElementById("apiEndpoint").value.trim() ||
@@ -131,11 +152,13 @@ async function downloadCSV() {
   a.click();
 }
 
+/* CLEAR */
 function clearAll() {
   setOutputs({});
   setStatus("");
 }
 
+/* EVENT BINDINGS */
 document.getElementById("oauthBtn").onclick = startOAuth;
 document.getElementById("loadBtn").onclick = loadWorkspaces;
 document.getElementById("saveBtn").onclick = saveWorkspace;
