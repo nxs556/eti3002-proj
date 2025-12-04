@@ -15,19 +15,17 @@ function setOutputs(obj) {
     JSON.stringify(obj, null, 2);
 }
 
-/* ---------- OAUTH ---------- */
+/* OAUTH */
 function startOAuth() {
   const url =
-    API_BASE +
-    AUTH_START_PATH +
-    "?client_key=" +
+    API_BASE + AUTH_START_PATH + "?client_key=" +
     encodeURIComponent(getClientKey());
 
   window.open(url, "_blank");
   setStatus("Opened Asana OAuth window");
 }
 
-/* ---------- CORE API HELPER ---------- */
+/* CORE API */
 async function apiCall(action, extra = {}) {
   const endpoint =
     document.getElementById("apiEndpoint").value.trim() ||
@@ -50,71 +48,65 @@ async function apiCall(action, extra = {}) {
   return data;
 }
 
-/* ---------- LOAD WORKSPACES ---------- */
+/* LOAD WORKSPACES */
 async function loadWorkspaces() {
-  try {
-    setStatus("Loading workspaces…");
+  const data = await apiCall("list_workspaces");
 
-    const data = await apiCall("list_workspaces");
+  const sel = document.getElementById("workspaceSelect");
+  sel.innerHTML = "";
+  sel.disabled = false;
 
-    if (!data.data || !data.data.length) {
-      setStatus("No workspaces found");
-      return;
-    }
+  data.data.forEach(w => {
+    const opt = document.createElement("option");
+    opt.value = w.gid;
+    opt.textContent = w.name;
+    sel.appendChild(opt);
+  });
 
-    const sel = document.getElementById("workspaceSelect");
-    sel.innerHTML = "";
-    sel.disabled = false;
-
-    data.data.forEach(w => {
-      const opt = document.createElement("option");
-      opt.value = w.gid;
-      opt.textContent = w.name;
-      sel.appendChild(opt);
-    });
-
-    setStatus("Workspaces loaded");
-  } catch (e) {
-    console.error(e);
-    setStatus("Failed to load workspaces");
-  }
+  setStatus("Workspaces loaded");
 }
 
-/* ---------- SAVE WORKSPACE ---------- */
+/* SAVE WORKSPACE */
 async function saveWorkspace() {
   const sel = document.getElementById("workspaceSelect");
 
   if (!sel.value) {
-    setStatus("Load and select a workspace first");
+    setStatus("Select workspace first");
     return;
   }
 
-  const data = await apiCall("save_workspace", {
+  const res = await apiCall("save_workspace", {
     workspace_gid: sel.value
   });
 
-  setStatus(data.message || "Workspace saved");
+  setStatus(res.message);
 }
 
-/* ---------- RUN BACKUP ---------- */
+/* BACKUP WITH CONFIRM */
 async function runBackup() {
-  const workspaceId =
-    document.getElementById("workspaceSelect").value;
+  const sel = document.getElementById("workspaceSelect").value;
 
-  if (!workspaceId) {
-    setStatus("Load and save workspace first");
+  if (!sel) {
+    setStatus("Select workspace first");
     return;
   }
 
-  const res = await apiCall("backup", {
-    workspace_id: workspaceId
-  });
+  const status = await apiCall("status");
+
+  const confirmMsg =
+    status.last_backup
+      ? `Last backup was ${status.last_backup}. Run again?`
+      : "No previous backup found. Run backup now?";
+
+  if (!confirm(confirmMsg)) return;
+
+  const res = await apiCall("backup", { workspace_id: sel });
 
   setStatus("Backup completed");
   setOutputs(res);
 }
 
-/* ---------- CHECK STATUS ---------- */
+/* STATUS */
 async function checkStatus() {
   const data = await apiCall("status");
 
@@ -122,12 +114,16 @@ async function checkStatus() {
     data.asana_user_gid ? "light on" : "light error";
 
   document.getElementById("dbLight").className =
-    data.workspace_gid ? "light on" : "light error";
+    data.last_backup ? "light on" : "light error";
 
-  setStatus("Status checked");
+  setStatus(
+    data.last_backup
+      ? "Last backup " + data.last_backup
+      : "No backup found"
+  );
 }
 
-/* ---------- DOWNLOAD CSV ---------- */
+/* DOWNLOAD BACKUP CSV */
 async function downloadCSV() {
   const endpoint =
     document.getElementById("apiEndpoint").value.trim() ||
@@ -137,10 +133,8 @@ async function downloadCSV() {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      action: "backup",
-      client_key: getClientKey(),
-      workspace_id: document.getElementById("workspaceSelect").value,
-      format: "csv"
+      action: "download_csv",
+      client_key: getClientKey()
     })
   });
 
@@ -153,13 +147,13 @@ async function downloadCSV() {
   a.click();
 }
 
-/* ---------- CLEAR ---------- */
+/* CLEAR */
 function clearAll() {
   setOutputs({});
   setStatus("");
 }
 
-/* ---------- EVENT BINDINGS ---------- */
+/* BINDINGS */
 document.getElementById("oauthBtn").onclick = startOAuth;
 document.getElementById("loadBtn").onclick = loadWorkspaces;
 document.getElementById("saveBtn").onclick = saveWorkspace;

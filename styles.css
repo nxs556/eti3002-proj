@@ -35,8 +35,7 @@ label {
   font-weight: bold;
 }
 
-input,
-select {
+input, select {
   width: 100%;
   padding: 8px;
   margin-top: 4px;
@@ -107,13 +106,7 @@ pre {
   font-size: 13px;
 }
 
-select:disabled {
-  background: #e3e3e3;
-  color: #777;
-  cursor: not-allowed;
-}
-
-/* HEADER LAYOUT */
+/* HEADER */
 .header-row {
   display: flex;
   align-items: center;
