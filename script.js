@@ -50,38 +50,40 @@ async function apiCall(action, extra = {}) {
 
 async function loadWorkspaces() {
   try {
-    const data = await apiCall("workspaces");
+    const data = await apiCall("list_workspaces")
 
-    const sel = document.getElementById("workspaceSelect");
-    sel.innerHTML = "";
-    sel.disabled = false;
+    const sel = document.getElementById("workspaceSelect")
+    sel.innerHTML = ""
+    sel.disabled = false
 
-    data.workspaces.forEach(w => {
-      const opt = document.createElement("option");
-      opt.value = w.gid;
-      opt.textContent = w.name;
-      sel.appendChild(opt);
-    });
+    data.data.forEach(w => {
+      const opt = document.createElement("option")
+      opt.value = w.gid
+      opt.textContent = w.name
+      sel.appendChild(opt)
+    })
 
-    setStatus("Workspaces loaded");
-  } catch {
-    setStatus("Connect Asana first");
+    setStatus("Workspaces loaded")
+  } catch (e) {
+    setStatus("Failed to load workspaces")
+    console.error(e)
   }
 }
 
 async function saveWorkspace() {
-  const sel = document.getElementById("workspaceSelect");
+  const sel = document.getElementById("workspaceSelect")
 
   if (sel.disabled || !sel.value) {
-    setStatus("Load and select a workspace first");
-    return;
+    setStatus("Load and select a workspace first")
+    return
   }
 
-  await apiCall("save_workspace", {
-    workspace_id: sel.value
-  });
+  await apiCall("select_workspace", {
+    workspace_gid: sel.value,
+    workspace_name: sel.options[sel.selectedIndex].text
+  })
 
-  setStatus("Workspace saved");
+  setStatus("Workspace saved")
 }
 
 async function runBackup() {
