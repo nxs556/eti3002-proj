@@ -50,20 +50,29 @@ async function apiCall(action, extra = {}) {
 
 /* LOAD WORKSPACES */
 async function loadWorkspaces() {
-  const data = await apiCall("list_workspaces");
+  try {
+    const data = await apiCall("list_workspaces");
 
-  const sel = document.getElementById("workspaceSelect");
-  sel.innerHTML = "";
-  sel.disabled = false;
+    if (!data.data || !data.data.length) {
+      setStatus("No workspaces found");
+      return;
+    }
 
-  data.data.forEach(w => {
-    const opt = document.createElement("option");
-    opt.value = w.gid;
-    opt.textContent = w.name;
-    sel.appendChild(opt);
-  });
+    const sel = document.getElementById("workspaceSelect");
+    sel.innerHTML = "";
+    sel.disabled = false;
 
-  setStatus("Workspaces loaded");
+    data.data.forEach(w => {
+      const opt = document.createElement("option");
+      opt.value = w.gid;
+      opt.textContent = w.name;
+      sel.appendChild(opt);
+    });
+
+    setStatus("Workspaces loaded");
+  } catch (e) {
+    setStatus("Failed to load workspaces");
+  }
 }
 
 /* SAVE WORKSPACE */
@@ -79,14 +88,15 @@ async function saveWorkspace() {
     workspace_gid: sel.value
   });
 
-  setStatus(res.message);
+  setStatus(res.message || "Workspace saved");
 }
 
 /* BACKUP WITH CONFIRM */
 async function runBackup() {
-  const sel = document.getElementById("workspaceSelect").value;
+  const workspaceId =
+    document.getElementById("workspaceSelect").value;
 
-  if (!sel) {
+  if (!workspaceId) {
     setStatus("Select workspace first");
     return;
   }
@@ -94,13 +104,15 @@ async function runBackup() {
   const status = await apiCall("status");
 
   const confirmMsg =
-    status.last_backup
-      ? `Last backup was ${status.last_backup}. Run again?`
+    status.last_backup_at
+      ? `Last backup was ${status.last_backup_at}. Run again?`
       : "No previous backup found. Run backup now?";
 
   if (!confirm(confirmMsg)) return;
 
-  const res = await apiCall("backup", { workspace_id: sel });
+  const res = await apiCall("backup", {
+    workspace_id: workspaceId
+  });
 
   setStatus("Backup completed");
   setOutputs(res);
@@ -114,11 +126,11 @@ async function checkStatus() {
     data.asana_user_gid ? "light on" : "light error";
 
   document.getElementById("dbLight").className =
-    data.last_backup ? "light on" : "light error";
+    data.last_backup_at ? "light on" : "light error";
 
   setStatus(
-    data.last_backup
-      ? "Last backup " + data.last_backup
+    data.last_backup_at
+      ? "Last backup " + data.last_backup_at
       : "No backup found"
   );
 }
