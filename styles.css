@@ -152,6 +152,30 @@ button:active {
   color: var(--danger);
 }
 
+.status-lights {
+  margin-top: 14px;
+  font-size: 13px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.light {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 6px;
+  background: #475569;
+}
+
+.light.on {
+  background: #22c55e;
+}
+
+.light.error {
+  background: #ef4444;
+}
+
 .response-row {
   margin-top: 10px;
 }
