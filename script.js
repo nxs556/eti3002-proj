@@ -52,21 +52,33 @@ async function apiCall(action, extra = {}) {
 /* LOAD WORKSPACES — uses BACKUP with action=status first */
 async function loadWorkspaces() {
   try {
-    setStatus("Checking token status first…");
+    setStatus("Loading workspaces…");
 
-    const status = await apiCall("status");
+    const data = await apiCall("list_workspaces");
 
-    if (!status.asana_user_gid) {
-      setStatus("No Asana token found. Connect first.");
+    if (!data.data || !data.data.length) {
+      setStatus("No workspaces found");
       return;
     }
 
-    setStatus("Status ok. Now fetching workspaces…");
+    const sel = document.getElementById("workspaceSelect");
+    sel.innerHTML = "";
+    sel.disabled = false;
 
-    /* TEMP: Backend must already return workspaces for this to work.
-       If your workspace loader is separate, plug it in here.
-       For now this assumes your backend already returned one workspace earlier.
-    */
+    data.data.forEach(w => {
+      const opt = document.createElement("option");
+      opt.value = w.gid;
+      opt.textContent = w.name;
+      sel.appendChild(opt);
+    });
+
+    setStatus("Workspaces loaded");
+  } catch (e) {
+    console.error(e);
+    setStatus("Failed to load workspaces");
+  }
+}
+
 
     const sel = document.getElementById("workspaceSelect");
     sel.innerHTML = "";
